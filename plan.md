@@ -1,80 +1,63 @@
-# opencode_session.nvim
+# playingwithmycumfigs
 
-## Overview
+## Purpose
 
-A Neovim plugin that extends the official [opencode.nvim](https://github.com/nickjvandyke/opencode.nvim) with:
+Ensure opencode session data is synced across machines (laptop, work PC) via Syncthing. When you chat with opencode on one machine, the `opencode.db` is synced so the same history appears on the other machine.
 
-- **Project-aware mode management**: Dynamically shows/hides custom mode tabs in the opencode TUI based on whether you're inside a project folder
-- **Session persistence**: Resumes the last active session per project across Neovim restarts
-- **Chat history storage**: Saves/loads conversation history to a local SQLite database (via snacks.nvim's bundled sqlite3)
-- **Multi-parent project detection**: Recognizes any folder under configured parent directories (e.g., `~/Projects/`, `~/CODE/`) as a project root, falling back to `.git` detection
+## What's in This Repo
 
-## Architecture
+| File | Purpose |
+|------|---------|
+| `lua/opencode_session/project.lua` | Multi-parent project detection (configurable parent dirs + `.git` fallback). Kept as a reusable utility. |
+| `plan.md` | This file — documentation of the sync setup. |
+| `.gitignore` | Standard ignores. |
+
+Everything else (db.lua, session.lua, prompts.lua, prompt/, plugin/) was removed — opencode manages sessions natively and has its own SQLite database. No Neovim plugin code is needed for sync.
+
+## How Sync Works
+
+### Syncthing Folder Configuration
+Syncthing should sync these directories across machines:
+
+| Directory | What | Notes |
+|-----------|------|-------|
+| `~/.local/share/opencode/` | Opencode data (sessions, chat history, tool outputs) | This contains `opencode.db` — the main database with all session data |
+
+### `.stignore` (at `~/.local/share/opencode/.stignore`)
+Exclude SQLite transient files to avoid conflicts:
 
 ```
-playingwithmycumfigs/
-├── lua/opencode_session/
-│   ├── project.lua      # Project root detection (parent dirs + .git fallback)
-│   ├── db.lua           # SQLite database operations (via snacks picker util db)
-│   ├── session.lua      # Session lifecycle (start, resume, save, load history)
-│   └── prompts.lua      # Manage prompt .md files in ~/.config/opencode/modes/
-├── plugin/
-│   └── opencode_session.lua  # Plugin entry point: setup, autocmds, user commands
-├── prompt/
-│   ├── Tutor.md         # Socratic Code Tutor
-│   ├── docs.md          # Documentation Hunter
-│   ├── review.md        # Code Reviewer
-│   ├── cop.md           # Security Auditor
-│   └── rabbit.md        # ADHD Rabbit Hole Blocker
-└── plan.md              # This file
+(?d)*.db-shm
+(?d)*.db-wal
 ```
 
-External config files (in `~/.config/nvim/lua/`):
-- `utils/opencode_modes.lua` — Mode definitions, server interaction, terminal clearing
-- `plugins/opencode.lua` — Official opencode.nvim config + custom mode keybindings
-- `plugins/opencode_session.lua` — lazy.nvim spec for this plugin
+The `opencode.db` file itself IS synced. These are just the WAL (Write-Ahead Log) files that SQLite creates temporarily.
 
-## What's Implemented
+### What to Verify
+On each machine (laptop + work PC):
+1. Syncthing is running
+2. `~/.local/share/opencode/` is added as a synced folder
+3. The `.stignore` file exists inside that folder with the WAL exclusions
+4. Both machines show the folder as "Up to Date"
 
-### Core Plugin (lua/opencode_session/)
-- [x] **project.lua**: Multi-parent project detection (configurable via `vim.g.opencode_opts.project.parent_dirs`), with `.git` fallback
-- [x] **db.lua**: SQLite3 database via snacks.nvim's bundled `sqlite3.dll`. Tables: `chat_history`, `active_sessions`
-- [x] **session.lua**: Start/resume sessions, save/load messages, persistence across restarts
-- [x] **prompts.lua**: Copy prompt `.md` files to `~/.config/opencode/modes/` inside projects, remove them outside
+Once configured, opencode's session history will sync automatically.
 
-### Neovim Config Integration
-- [x] **opencode_modes.lua**: 5 modes (tutor, docs, review, security, rabbit) reading from `.md` files
-- [x] Project-scope check: modes only work inside project folders
-- [x] Terminal clearing on mode switch (sends form feed to opencode terminal buffer)
-- [x] Keybindings: `<Leader>ot`/`od`/`or`/`oc`/`ob` for each mode
-- [x] DB notification only appears on first database creation
+## Parent Project Dirs
 
-### OpenCode Server
-- [x] Dynamic mode tabs in opencode TUI (appear inside projects, only plan/build outside)
-- [x] Prompts sourced from `~/.config/opencode/modes/*.md`
+Configured in `vim.g.opencode_opts.project.parent_dirs` (in Neovim config):
 
-## Remaining Work
+- `C:/Users/abhianu/OneDrive/Desktop/Projects` (laptop)
+- `C:/Users/abhianu/OneDrive/Desktop/CODE` (laptop)
+- `C:/Users/avsg/Desktop/CODE` (work PC)
 
-### Bugs - Fixed
-- [x] ~~**BU-001: `copy()` error in prompts.lua** — `vim.fn.copy()` is for Vim dicts, not files. Replaced with `vim.fn.readfile` + `vim.fn.writefile`.~~ ✅
+## Removed Features (Historical Reference)
 
-### Features - Complete
-- [x] ~~**Clear chat history on mode switch** — No dedicated clear/purge API exists in opencode.nvim. Using `session.new` instead: each mode switch creates a fresh session (equivalent to Option B).~~ ✅
-
-### Future / Not Implemented
-- `DELETE /session/{id}` endpoint — the opencode.nvim Neovim plugin does not expose any API to delete/purge/clear a session's messages. The server's REST API might have one (not explored), but the plugin has none. Current solution: create a new session each time.
-- Add `:Session` commands documentation
-- Auto-start opencode server inside projects
-- Mode-specific session history (not just project-level)
-
-## User Decisions Made
-
-| Decision | Choice |
-|----------|--------|
-| Mode tabs visibility | Dynamic — only show custom tabs (tutor, docs, review, security, rabbit) inside project folders; only built-in plan/build outside |
-| Terminal on mode switch | Cleared via form feed (`\f`) sent to terminal channel |
-| Session history on mode switch | **Option A**: `session.new` creates a fresh session each time (Option B impossible — no clear/purge API exists in opencode.nvim) |
-| Prompt source | Only `.md` instruction files, no inline Lua prompts |
-| Session across restarts | Resume last active session per project |
-| nvim config path | `~/.config/nvim/` (Windows: `C:\Users\abhianu\.config\nvim\`) |
-| Parent project dirs | `C:\Users\abhianu\OneDrive\Desktop\Projects`, `C:\Users\abhianu\OneDrive\Desktop\CODE`, `C:\Users\avsg\Desktop\CODE` |
+The following were implemented and then stripped out when the scope was simplified:
+- SQLite database module (db.lua) — opencode has its own
+- Session management module (session.lua) — opencode manages natively
+- Prompt management module (prompts.lua) — no mode tabs needed
+- Mode prompt files (prompt/) — no custom modes needed
+- Plugin entry point (plugin/opencode_session.lua) — no plugin needed
+- Neovim mode integration (opencode_modes.lua) — no mode switching needed
+- Terminal clearing on mode switch
+- Dynamic mode tabs in opencode TUI
