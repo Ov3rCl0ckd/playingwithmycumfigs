@@ -55,16 +55,17 @@ External config files (in `~/.config/nvim/lua/`):
 
 ## Remaining Work
 
-### Bugs
-- [ ] **BU-001: `copy()` error in prompts.lua** — `vim.fn.copy()` is for Vim dicts, not files. Need to use `vim.fn.readfile` + `vim.fn.writefile` instead.
+### Bugs - Fixed
+- [x] ~~**BU-001: `copy()` error in prompts.lua** — `vim.fn.copy()` is for Vim dicts, not files. Replaced with `vim.fn.readfile` + `vim.fn.writefile`.~~ ✅
 
-### Features In Progress
-- [ ] **Clear chat history on mode switch (Option B)** — When switching modes, clear the previous session's conversation history via the opencode server API (instead of creating a new session each time). *Waiting on API method discovery.*
+### Features - Complete
+- [x] ~~**Clear chat history on mode switch** — No dedicated clear/purge API exists in opencode.nvim. Using `session.new` instead: each mode switch creates a fresh session (equivalent to Option B).~~ ✅
 
-### Future Ideas
-- [ ] Add `:Session` commands documentation
-- [ ] Auto-start opencode server inside projects
-- [ ] Mode-specific session history (not just project-level)
+### Future / Not Implemented
+- `DELETE /session/{id}` endpoint — the opencode.nvim Neovim plugin does not expose any API to delete/purge/clear a session's messages. The server's REST API might have one (not explored), but the plugin has none. Current solution: create a new session each time.
+- Add `:Session` commands documentation
+- Auto-start opencode server inside projects
+- Mode-specific session history (not just project-level)
 
 ## User Decisions Made
 
@@ -72,7 +73,7 @@ External config files (in `~/.config/nvim/lua/`):
 |----------|--------|
 | Mode tabs visibility | Dynamic — only show custom tabs (tutor, docs, review, security, rabbit) inside project folders; only built-in plan/build outside |
 | Terminal on mode switch | Cleared via form feed (`\f`) sent to terminal channel |
-| Session history on mode switch | **Option B**: Clear via API (not create new session) |
+| Session history on mode switch | **Option A**: `session.new` creates a fresh session each time (Option B impossible — no clear/purge API exists in opencode.nvim) |
 | Prompt source | Only `.md` instruction files, no inline Lua prompts |
 | Session across restarts | Resume last active session per project |
 | nvim config path | `~/.config/nvim/` (Windows: `C:\Users\abhianu\.config\nvim\`) |
