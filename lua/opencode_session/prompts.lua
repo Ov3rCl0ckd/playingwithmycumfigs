@@ -23,7 +23,8 @@ function M.setup()
     local source = plugin_prompt_dir .. "/" .. file
     local dest = opencode_modes_dir .. "/" .. file
     if vim.fn.filereadable(source) == 1 and vim.fn.filereadable(dest) == 0 then
-      vim.fn.copy(source, dest)
+      local lines = vim.fn.readfile(source)
+      vim.fn.writefile(lines, dest)
     end
   end
 end
