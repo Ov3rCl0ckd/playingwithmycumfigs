@@ -9,3 +9,10 @@ Thumbs.db
 
 # Neovim
 nvim-data/
+
+# Logs and runtime files
+*.log
+yasb/todo.json
+**/node_modules/
+**/package-lock.json
+
