@@ -5,7 +5,8 @@
 vim.opt.clipboard = "unnamedplus"    -- y/yank → system clipboard (+)
 vim.opt.number = true
 vim.opt.relativenumber = true
-
+vim.keymap.set({ "n" , "v" } , "<Leader>sw", vim.diagnostic.open_float )
+vim.keymap.set({ "n", "v" }, "<Leader>at", "<cmd>OpencodeQuota<CR>", { desc = "Check Opencode Quota" })
 -- ============================================================================
 --  CLIPBOARD ── delete → black-hole register, explicit Ctrl-c/v
 -- ============================================================================

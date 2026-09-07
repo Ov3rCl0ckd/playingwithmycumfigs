@@ -22,6 +22,21 @@ vim.opt.rtp:prepend(lazypath)
 
 require("lazy").setup({
   { import = "plugins" },
+}, {
+  performance = {
+    rtp = {
+      -- Disable heavy built-in Neovim plugins to drastically speed up boot time
+      disabled_plugins = {
+        "gzip",
+        "matchit",
+        "matchparen",
+        "tarPlugin",
+        "tohtml",
+        "tutor",
+        "zipPlugin",
+      },
+    },
+  },
 })
 
 require("vimkeys")
